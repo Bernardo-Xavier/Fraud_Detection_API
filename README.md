@@ -2,7 +2,6 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-<<<<<<< HEAD
 A full-stack prototype of a real-time financial fraud detection system. The backend is a Python microservice built with **FastAPI** and containerized with **Docker**. The frontend is an interactive web application built with **Vue.js**.
 
 ---
@@ -10,9 +9,6 @@ A full-stack prototype of a real-time financial fraud detection system. The back
 ## Database
 
 This project used the Credit Card Fraud Detection (creditcard.csv) database from Kaggle (https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud).
-=======
-A full-stack prototype of a real-time financial fraud detection system. The backend is a high-performance Python microservice built with **FastAPI** and containerized with **Docker**. The frontend is an interactive web application built with **Vue.js**.
->>>>>>> d8082f4 (Initial commit: Full-stack fraud detection system)
 
 ---
 
@@ -20,10 +16,6 @@ A full-stack prototype of a real-time financial fraud detection system. The back
 
 Here is a quick demonstration of the system in action. The Vue.js frontend sends a transaction to the backend API, which returns a real-time risk assessment from the machine learning model.
 
-<<<<<<< HEAD
-=======
-*(Insert Your GIF Here! Upload the GIF to your repo and link to it like this:)*
->>>>>>> d8082f4 (Initial commit: Full-stack fraud detection system)
 ![Live Demo](./demo.gif)
 
 ---
