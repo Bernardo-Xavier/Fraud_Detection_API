@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Fraud Detection</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js for interactivity -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        /* A little custom styling for better UX */
+        body {
+            background-color: #f3f4f6; /* A light gray background */
+        }
+        .v-enter-active,
+        .v-leave-active {
+            transition: opacity 0.5s ease;
+        }
+        .v-enter-from,
+        .v-leave-to {
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app" class="font-sans antialiased text-gray-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        
+        <!-- Header Section -->
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-gray-900">Real-Time Fraud Detection</h1>
+            <p class="mt-2 text-lg text-gray-600">Enter transaction details below to get a real-time risk assessment from the API.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <!-- Input Form Section -->
+            <div class="lg:col-span-2">
+                <form @submit.prevent="checkFraudRisk" class="bg-white p-8 rounded-2xl shadow-lg space-y-6">
+                    <h2 class="text-2xl font-semibold text-gray-800 border-b pb-3">Transaction Data</h2>
+                    
+                    <!-- Main Fields: Time and Amount -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="time" class="block text-sm font-medium text-gray-700">Time (seconds since first transaction)</label>
+                            <input type="number" step="any" v-model.number="transactionData.Time" id="time" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                        </div>
+                        <div>
+                            <label for="amount" class="block text-sm font-medium text-gray-700">Amount</label>
+                            <input type="number" step="any" v-model.number="transactionData.Amount" id="amount" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                        </div>
+                    </div>
+
+                    <!-- Anonymized V-Fields -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-700">Anonymized Features (V1-V28)</h3>
+                        <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                            <div v-for="n in 28" :key="n">
+                                <label :for="'v' + n" class="block text-xs font-medium text-gray-600">V{{ n }}</label>
+                                <input type="number" step="any" :id="'v' + n" v-model.number="transactionData['V' + n]" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-4 text-right">
+                        <button type="submit" :disabled="isLoading"
+                                class="inline-flex justify-center py-3 px-6 border border-transparent shadow-lg text-base font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-colors">
+                            <svg v-if="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span v-if="isLoading">Assessing Risk...</span>
+                            <span v-else>Check Fraud Risk</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Results Section -->
+            <div class="lg:col-span-1">
+                <div class="bg-white p-8 rounded-2xl shadow-lg h-full">
+                    <h2 class="text-2xl font-semibold text-gray-800 border-b pb-3 mb-6">API Response</h2>
+                    
+                    <!-- Error Message Display -->
+                    <transition>
+                        <div v-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md" role="alert">
+                            <p class="font-bold">Error</p>
+                            <p>{{ error }}</p>
+                        </div>
+                    </transition>
+
+                    <!-- Result Display -->
+                    <transition>
+                        <div v-if="result && !error" class="space-y-4">
+                            <!-- Decision Badge -->
+                            <div class="text-center p-4 rounded-xl text-white font-bold text-2xl"
+                                 :class="{ 'bg-green-500': result.decision === 'APPROVE', 'bg-red-500': result.decision !== 'APPROVE' }">
+                                Decision: {{ result.decision }}
+                            </div>
+                            <!-- Result Details -->
+                            <div class="space-y-2 text-gray-700">
+                                <div class="flex justify-between">
+                                    <span class="font-medium">Fraudulent:</span>
+                                    <span class="font-mono" :class="{ 'text-red-600 font-bold': result.is_fraud, 'text-green-600': !result.is_fraud }">
+                                        {{ result.is_fraud ? 'Yes' : 'No' }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-medium">Risk Score:</span>
+                                    <span class="font-mono">{{ (result.risk_score * 100).toFixed(4) }}%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="font-medium">Confidence:</span>
+                                    <span class="font-mono">{{ (result.confidence_level * 100).toFixed(2) }}%</span>
+                                </div>
+                                <div class="flex justify-between items-center pt-2 border-t mt-2">
+                                    <span class="font-medium">Transaction ID:</span>
+                                    <span class="font-mono text-xs text-gray-500">{{ result.transaction_id }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </transition>
+
+                    <!-- Placeholder -->
+                    <div v-if="!result && !error && !isLoading" class="text-center text-gray-500 pt-10">
+                        <p>Results will be displayed here.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, reactive } = Vue;
+
+    createApp({
+        setup() {
+            // Reactive state for form inputs.
+            // Pre-filled with the example data for convenience.
+            const transactionData = reactive({
+                Time: 120,
+                V1: -1.5, V2: 0.5, V3: -0.5, V4: 1.2, V5: -0.8,
+                V6: 0.3, V7: -0.4, V8: 0.6, V9: -0.7, V10: 0.2,
+                V11: -0.9, V12: 0.4, V13: -0.6, V14: 0.8, V15: -1.1,
+                V16: 0.5, V17: -0.3, V18: 0.7, V19: -0.4, V20: 0.1,
+                V21: -0.2, V22: 0.5, V23: 0.1, V24: 0.3, V25: -0.2,
+                V26: 0.4, V27: 0.1, V28: 0.2,
+                Amount: 150.75
+            });
+
+            // Reactive state for UI control
+            const isLoading = ref(false);
+            const error = ref(null);
+            const result = ref(null);
+
+            // API Endpoint
+            const apiUrl = 'http://localhost:8000/predict';
+
+            // Method to call the backend API
+            async function checkFraudRisk() {
+                isLoading.value = true;
+                error.value = null;
+                result.value = null;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(transactionData),
+                    });
+
+                    if (!response.ok) {
+                        // Handle HTTP errors like 404, 500 etc.
+                        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    result.value = data;
+
+                } catch (e) {
+                    // Handle network errors or errors thrown from the try block
+                    console.error("Error calling API:", e);
+                    error.value = 'Failed to connect to the API. Make sure the Docker container is running and accessible.';
+                } finally {
+                    // This will run whether the request was successful or not
+                    isLoading.value = false;
+                }
+            }
+
+            return {
+                transactionData,
+                isLoading,
+                error,
+                result,
+                checkFraudRisk
+            };
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
+    
